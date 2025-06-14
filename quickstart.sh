@@ -14,7 +14,7 @@ files=(
 
 # 下载所有脚本
 for file in "${files[@]}"; do
-  echo "正在下载 $file ..."
+  # echo "正在下载 $file ..."
   curl -fsSL -o "$file" "https://raw.githubusercontent.com/Jett-Zhang/docker_singbox_manager/main/$file"
 done
 
