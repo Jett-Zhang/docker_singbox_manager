@@ -480,7 +480,7 @@ EOF
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}tuic://$uuid:$password@$domain:$port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#tuic-$port${NC}"
-
+    echo -e "${YELLOW}tuic节点导入V2rayN和Nekobox客户端请手动勾选不检查证书${NC}"
     read -p "按回车键继续..."
 }
 
