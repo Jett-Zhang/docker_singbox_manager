@@ -804,18 +804,720 @@ modify_node() {
     
     local array_index=$((node_index-1))
     local node_type=$(jq -r ".inbounds[$array_index].type" "$CONFIG_FILE")
+    local node_tag=$(jq -r ".inbounds[$array_index].tag // \"节点$((node_index))\"" "$CONFIG_FILE")
+    
+    echo -e "${BLUE}修改节点: $node_tag ($node_type)${NC}"
+    echo ""
+    
+    case $node_type in
+        "hysteria2")
+            modify_hysteria2_node $array_index
+            ;;
+        "vless")
+            modify_vless_node $array_index
+            ;;
+        "trojan")
+            modify_trojan_node $array_index
+            ;;
+        "shadowsocks")
+            modify_shadowsocks_node $array_index
+            ;;
+        "vmess")
+            modify_vmess_node $array_index
+            ;;
+        "tuic")
+            modify_tuic_node $array_index
+            ;;
+        "http")
+            modify_http_node $array_index
+            ;;
+        "socks")
+            modify_socks_node $array_index
+            ;;
+        *)
+            log_error "不支持的节点类型: $node_type"
+            return
+            ;;
+    esac
+}
+
+# 修改 Hysteria2 节点
+modify_hysteria2_node() {
+    local array_index=$1
     local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].users[0].password" "$CONFIG_FILE")
     
-    echo -e "${BLUE}修改节点信息:${NC}"
-    echo "当前端口: $current_port"
-    read -p "请输入新端口 (回车保持不变): " new_port
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  密码: $current_password"
+    echo ""
     
-    if [[ -n "$new_port" ]]; then
-        jq ".inbounds[$array_index].listen_port = $new_port" "$CONFIG_FILE" > /tmp/config_tmp.json
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改密码"
+    echo "3. 同时修改端口和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-3]: " modify_choice
+    
+    local new_port=$current_port
+    local new_password=$current_password
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        3)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].password = \"$new_password\"" "$CONFIG_FILE" > /tmp/config_tmp.json
         mv /tmp/config_tmp.json "$CONFIG_FILE"
         
         restart_singbox
-        log_success "节点端口已更新为: $new_port"
+        log_success "Hysteria2 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 VLESS 节点
+modify_vless_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_uuid=$(jq -r ".inbounds[$array_index].users[0].uuid" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  UUID: $current_uuid"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改UUID"
+    echo "3. 同时修改端口和UUID"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-3]: " modify_choice
+    
+    local new_port=$current_port
+    local new_uuid=$current_uuid
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            ;;
+        3)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].uuid = \"$new_uuid\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "VLESS 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新UUID: $new_uuid${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 Trojan 节点
+modify_trojan_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].users[0].password" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  密码: $current_password"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改密码"
+    echo "3. 同时修改端口和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-3]: " modify_choice
+    
+    local new_port=$current_port
+    local new_password=$current_password
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        3)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].password = \"$new_password\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "Trojan 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 Shadowsocks 节点
+modify_shadowsocks_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].password" "$CONFIG_FILE")
+    local current_method=$(jq -r ".inbounds[$array_index].method" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  密码: $current_password"
+    echo "  加密方法: $current_method"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改密码"
+    echo "3. 修改加密方法"
+    echo "4. 同时修改端口和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-4]: " modify_choice
+    
+    local new_port=$current_port
+    local new_password=$current_password
+    local new_method=$current_method
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        3)
+            echo -e "${BLUE}可选加密方法:${NC}"
+            echo "1. aes-128-gcm"
+            echo "2. aes-256-gcm"
+            echo "3. chacha20-ietf-poly1305"
+            echo "4. 2022-blake3-aes-128-gcm"
+            echo "5. 2022-blake3-aes-256-gcm"
+            read -p "请选择加密方法 [1-5]: " method_choice
+            case $method_choice in
+                1) new_method="aes-128-gcm" ;;
+                2) new_method="aes-256-gcm" ;;
+                3) new_method="chacha20-ietf-poly1305" ;;
+                4) new_method="2022-blake3-aes-128-gcm" ;;
+                5) new_method="2022-blake3-aes-256-gcm" ;;
+                *) log_error "无效选择"; return ;;
+            esac
+            modified=true
+            ;;
+        4)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].password = \"$new_password\" | .inbounds[$array_index].method = \"$new_method\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "Shadowsocks 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
+        echo -e "${GREEN}新加密方法: $new_method${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 VMess 节点
+modify_vmess_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_uuid=$(jq -r ".inbounds[$array_index].users[0].uuid" "$CONFIG_FILE")
+    local current_path=$(jq -r ".inbounds[$array_index].transport.path" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  UUID: $current_uuid"
+    echo "  WebSocket路径: $current_path"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改UUID"
+    echo "3. 修改WebSocket路径"
+    echo "4. 同时修改端口和UUID"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-4]: " modify_choice
+    
+    local new_port=$current_port
+    local new_uuid=$current_uuid
+    local new_path=$current_path
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            ;;
+        3)
+            read -p "请输入新WebSocket路径 (当前: $current_path): " input_path
+            if [[ -n "$input_path" ]]; then
+                new_path=$input_path
+                modified=true
+            fi
+            ;;
+        4)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].uuid = \"$new_uuid\" | .inbounds[$array_index].transport.path = \"$new_path\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "VMess 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新UUID: $new_uuid${NC}"
+        echo -e "${GREEN}新WebSocket路径: $new_path${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 TUIC 节点
+modify_tuic_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_uuid=$(jq -r ".inbounds[$array_index].users[0].uuid" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].users[0].password" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  UUID: $current_uuid"
+    echo "  密码: $current_password"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改UUID"
+    echo "3. 修改密码"
+    echo "4. 同时修改端口、UUID和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-4]: " modify_choice
+    
+    local new_port=$current_port
+    local new_uuid=$current_uuid
+    local new_password=$current_password
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            ;;
+        3)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        4)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新UUID (当前: $current_uuid, 回车生成新UUID): " input_uuid
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_uuid" ]]; then
+                new_uuid=$input_uuid
+            else
+                new_uuid=$(generate_random "uuid")
+            fi
+            modified=true
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].uuid = \"$new_uuid\" | .inbounds[$array_index].users[0].password = \"$new_password\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "TUIC 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新UUID: $new_uuid${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 HTTP 节点
+modify_http_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_username=$(jq -r ".inbounds[$array_index].users[0].username" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].users[0].password" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  用户名: $current_username"
+    echo "  密码: $current_password"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改用户名"
+    echo "3. 修改密码"
+    echo "4. 同时修改端口、用户名和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-4]: " modify_choice
+    
+    local new_port=$current_port
+    local new_username=$current_username
+    local new_password=$current_password
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新用户名 (当前: $current_username): " input_username
+            if [[ -n "$input_username" ]]; then
+                new_username=$input_username
+                modified=true
+            fi
+            ;;
+        3)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        4)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新用户名 (当前: $current_username): " input_username
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_username" ]]; then
+                new_username=$input_username
+                modified=true
+            fi
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].username = \"$new_username\" | .inbounds[$array_index].users[0].password = \"$new_password\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "HTTP 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新用户名: $new_username${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
+    else
+        log_warning "未进行任何修改"
+    fi
+}
+
+# 修改 SOCKS5 节点
+modify_socks_node() {
+    local array_index=$1
+    local current_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
+    local current_username=$(jq -r ".inbounds[$array_index].users[0].username" "$CONFIG_FILE")
+    local current_password=$(jq -r ".inbounds[$array_index].users[0].password" "$CONFIG_FILE")
+    
+    echo -e "${GREEN}当前配置:${NC}"
+    echo "  端口: $current_port"
+    echo "  用户名: $current_username"
+    echo "  密码: $current_password"
+    echo ""
+    
+    echo -e "${BLUE}请选择要修改的项目:${NC}"
+    echo "1. 修改端口"
+    echo "2. 修改用户名"
+    echo "3. 修改密码"
+    echo "4. 同时修改端口、用户名和密码"
+    echo "0. 返回"
+    echo ""
+    
+    read -p "请选择 [0-4]: " modify_choice
+    
+    local new_port=$current_port
+    local new_username=$current_username
+    local new_password=$current_password
+    local modified=false
+    
+    case $modify_choice in
+        1)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            ;;
+        2)
+            read -p "请输入新用户名 (当前: $current_username): " input_username
+            if [[ -n "$input_username" ]]; then
+                new_username=$input_username
+                modified=true
+            fi
+            ;;
+        3)
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        4)
+            read -p "请输入新端口 (当前: $current_port): " input_port
+            read -p "请输入新用户名 (当前: $current_username): " input_username
+            read -p "请输入新密码 (当前: $current_password): " input_password
+            if [[ -n "$input_port" ]]; then
+                new_port=$input_port
+                modified=true
+            fi
+            if [[ -n "$input_username" ]]; then
+                new_username=$input_username
+                modified=true
+            fi
+            if [[ -n "$input_password" ]]; then
+                new_password=$input_password
+                modified=true
+            fi
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "无效选择"
+            return
+            ;;
+    esac
+    
+    if [ "$modified" = true ]; then
+        jq ".inbounds[$array_index].listen_port = $new_port | .inbounds[$array_index].users[0].username = \"$new_username\" | .inbounds[$array_index].users[0].password = \"$new_password\"" "$CONFIG_FILE" > /tmp/config_tmp.json
+        mv /tmp/config_tmp.json "$CONFIG_FILE"
+        
+        restart_singbox
+        log_success "SOCKS5 节点修改成功"
+        echo -e "${GREEN}新端口: $new_port${NC}"
+        echo -e "${GREEN}新用户名: $new_username${NC}"
+        echo -e "${GREEN}新密码: $new_password${NC}"
     else
         log_warning "未进行任何修改"
     fi
