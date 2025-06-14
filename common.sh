@@ -31,17 +31,13 @@ log_error() {
     echo -e "${RED}✖ $1${NC}" >&2
 }
 
+
+
 # 检查依赖
 check_dependencies() {
-    # 先检查并安装 sudo
-    if ! command -v sudo &> /dev/null; then
-        log_step "安装 sudo..."
-        apt update -qq
-        apt install -y sudo
-    fi
-    
     if ! command -v jq &> /dev/null; then
         log_step "安装 jq..."
+        apt install -y sudo
         sudo apt update -qq
         sudo apt install -y jq
     fi
