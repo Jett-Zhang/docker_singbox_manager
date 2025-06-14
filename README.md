@@ -46,6 +46,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imjettzhang/docker_singbox_m
 - 请确保服务器防火墙已开放相应端口
 - 建议在全新的系统上安装，避免端口冲突
 - 安装过程需要网络连接下载必要组件
+- tuic节点导入V2rayN和Nekobox客户端请手动勾选不检查证书
 
 ## 免责声明
 
