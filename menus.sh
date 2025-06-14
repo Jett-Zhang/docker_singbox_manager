@@ -30,12 +30,11 @@ node_management_menu() {
         echo -e "${BLUE}请选择操作:${NC}"
         echo "1. 添加节点"
         echo "2. 删除节点"
-        echo "3. 修改节点"
-        echo "4. 显示所有节点"
+        echo "3. 显示所有节点"
         echo "0. 返回主菜单"
         echo ""
         
-        read -p "请输入选择 [0-4]: " node_choice
+        read -p "请输入选择 [0-3]: " node_choice
         
         case $node_choice in
             1) 
@@ -46,10 +45,6 @@ node_management_menu() {
                 read -p "按回车键继续..."
                 ;;
             3) 
-                modify_node
-                read -p "按回车键继续..."
-                ;;
-            4) 
                 show_nodes
                 read -p "按回车键继续..."
                 ;;
