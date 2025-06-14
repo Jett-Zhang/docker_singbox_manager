@@ -184,7 +184,7 @@ enable_bbr() {
     # 备份原始配置
     if [ ! -f /etc/sysctl.conf.bak ]; then
         cp /etc/sysctl.conf /etc/sysctl.conf.bak
-        log_step "已备份原始 sysctl.conf"
+        log_step "已备份原始配置到 /etc/sysctl.conf.bak"
     fi
     
     # 添加BBR配置
@@ -195,8 +195,8 @@ net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 EOF
     
-    # 应用配置
-    sysctl -p
+    # 应用配置（静默模式）
+    sysctl -p > /dev/null 2>&1
     
     # 验证配置
     local new_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)

@@ -254,8 +254,10 @@ show_menu() {
     
     local ipv4=$(curl -4 -s --connect-timeout 3 https://api.ipify.org 2>/dev/null || echo "获取失败")
     local ipv6=$(curl -6 -s --connect-timeout 3 https://api6.ipify.org 2>/dev/null || echo "获取失败")
+    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3 || echo "未知")
     echo -e "${GREEN}● 本机 IPv4: $ipv4${NC}"
     echo -e "${GREEN}● 本机 IPv6: $ipv6${NC}"
+    echo -e "${GREEN}● 当前拥塞控制算法: $current_congestion${NC}"
     
     echo ""
     echo -e "${BLUE}请选择操作:${NC}"
