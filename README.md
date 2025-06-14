@@ -38,8 +38,6 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imjettzhang/docker_singbox_m
 
 - Linux 系统（推荐 Ubuntu/Debian/CentOS）
 - Docker 和 Docker Compose
-- Curl 工具
-- 管理员权限
 
 ## 注意事项
 

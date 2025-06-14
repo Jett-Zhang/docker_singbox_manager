@@ -263,6 +263,78 @@ show_menu() {
     echo "2. 节点管理"
     echo "3. 出站策略配置"
     echo "4. 服务管理"
+    echo "5. 开启/关闭BBR"
     echo "0. 退出"
     echo ""
+}
+
+# BBR 管理菜单
+bbr_management_menu() {
+    while true; do
+        clear
+        echo -e "${BLUE}================================${NC}"
+        echo -e "${BLUE}        BBR 管理菜单${NC}"
+        echo -e "${BLUE}================================${NC}"
+        echo ""
+        
+        # 获取BBR状态信息
+        local bbr_info=$(check_bbr_status)
+        local current_congestion=$(echo "$bbr_info" | grep "current:" | cut -d: -f2)
+        local available_congestion=$(echo "$bbr_info" | grep "available:" | cut -d: -f2-)
+        local kernel_version=$(uname -r)
+        
+        echo -e "${GREEN}● 内核版本: $kernel_version${NC}"
+        echo -e "${GREEN}● 当前拥塞控制算法: $current_congestion${NC}"
+        echo -e "${GREEN}● 可用拥塞控制算法: $available_congestion${NC}"
+        
+        if [ "$current_congestion" = "bbr" ]; then
+            echo -e "${GREEN}● BBR 状态: 已启用${NC}"
+        else
+            echo -e "${RED}● BBR 状态: 未启用${NC}"
+        fi
+        
+        echo ""
+        echo -e "${BLUE}请选择操作:${NC}"
+        echo "1. 开启 BBR"
+        echo "2. 关闭 BBR"
+        echo "3. 查看 BBR 状态"
+        echo "0. 返回主菜单"
+        echo ""
+        
+        read -p "请输入选择 [0-3]: " bbr_choice
+        
+        case $bbr_choice in
+            1)
+                enable_bbr
+                read -p "按回车键继续..."
+                ;;
+            2)
+                disable_bbr
+                read -p "按回车键继续..."
+                ;;
+            3)
+                echo ""
+                echo -e "${BLUE}=== BBR 详细状态 ===${NC}"
+                echo -e "${GREEN}内核版本: $(uname -r)${NC}"
+                echo -e "${GREEN}当前拥塞控制: $(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)${NC}"
+                echo -e "${GREEN}默认队列规则: $(sysctl net.core.default_qdisc 2>/dev/null | cut -d' ' -f3)${NC}"
+                echo -e "${GREEN}可用拥塞控制: $(sysctl net.ipv4.tcp_available_congestion_control 2>/dev/null | cut -d' ' -f3-)${NC}"
+                echo ""
+                if sysctl net.ipv4.tcp_congestion_control 2>/dev/null | grep -q bbr; then
+                    echo -e "${GREEN}✔ BBR 已启用并正在运行${NC}"
+                else
+                    echo -e "${RED}✖ BBR 未启用${NC}"
+                fi
+                echo ""
+                read -p "按回车键继续..."
+                ;;
+            0)
+                break
+                ;;
+            *)
+                log_error "无效选择"
+                read -p "按回车键继续..."
+                ;;
+        esac
+    done
 } 

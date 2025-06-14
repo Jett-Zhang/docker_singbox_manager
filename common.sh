@@ -143,4 +143,99 @@ start_singbox() {
     else
         log_warning "Sing-Box 容器不存在或已运行"
     fi
+}
+
+# 检查BBR状态
+check_bbr_status() {
+    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)
+    local available_congestion=$(sysctl net.ipv4.tcp_available_congestion_control 2>/dev/null | cut -d' ' -f3-)
+    
+    echo "current:$current_congestion"
+    echo "available:$available_congestion"
+}
+
+# 开启BBR
+enable_bbr() {
+    log_step "开启 BBR 拥塞控制算法"
+    
+    # 检查内核版本
+    local kernel_version=$(uname -r | cut -d. -f1-2)
+    local major_version=$(echo $kernel_version | cut -d. -f1)
+    local minor_version=$(echo $kernel_version | cut -d. -f2)
+    
+    if [ "$major_version" -lt 4 ] || ([ "$major_version" -eq 4 ] && [ "$minor_version" -lt 9 ]); then
+        log_error "内核版本过低 ($kernel_version)，BBR 需要内核版本 4.9 或更高"
+        return 1
+    fi
+    
+    # 检查是否已经启用BBR
+    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)
+    if [ "$current_congestion" = "bbr" ]; then
+        log_warning "BBR 已经启用"
+        return 0
+    fi
+    
+    # 检查BBR是否可用
+    if ! sysctl net.ipv4.tcp_available_congestion_control 2>/dev/null | grep -q bbr; then
+        log_error "BBR 模块不可用，可能需要更新内核"
+        return 1
+    fi
+    
+    # 备份原始配置
+    if [ ! -f /etc/sysctl.conf.bak ]; then
+        cp /etc/sysctl.conf /etc/sysctl.conf.bak
+        log_step "已备份原始 sysctl.conf"
+    fi
+    
+    # 添加BBR配置
+    cat >> /etc/sysctl.conf << EOF
+
+# BBR 拥塞控制算法配置
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+EOF
+    
+    # 应用配置
+    sysctl -p
+    
+    # 验证配置
+    local new_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)
+    if [ "$new_congestion" = "bbr" ]; then
+        log_success "BBR 已成功启用"
+        return 0
+    else
+        log_error "BBR 启用失败"
+        return 1
+    fi
+}
+
+# 关闭BBR
+disable_bbr() {
+    log_step "关闭 BBR 拥塞控制算法"
+    
+    # 检查是否启用了BBR
+    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)
+    if [ "$current_congestion" != "bbr" ]; then
+        log_warning "BBR 未启用"
+        return 0
+    fi
+    
+    # 恢复默认配置
+    sysctl -w net.ipv4.tcp_congestion_control=cubic
+    sysctl -w net.core.default_qdisc=pfifo_fast
+    
+    # 从配置文件中移除BBR配置
+    if [ -f /etc/sysctl.conf ]; then
+        sed -i '/# BBR 拥塞控制算法配置/,+2d' /etc/sysctl.conf
+    fi
+    
+    # 验证配置
+    local new_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3)
+    if [ "$new_congestion" != "bbr" ]; then
+        log_success "BBR 已关闭，当前使用: $new_congestion"
+        return 0
+    else
+        log_error "BBR 关闭失败"
+        return 1
+    fi
 } 

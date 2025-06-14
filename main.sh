@@ -20,7 +20,7 @@ main() {
     # 主循环
     while true; do
         show_menu
-        read -p "请输入选择 [0-4]: " choice
+        read -p "请输入选择 [0-5]: " choice
         
         case $choice in
             1)
@@ -35,6 +35,9 @@ main() {
                 ;;
             4)
                 management_menu
+                ;;
+            5)
+                bbr_management_menu
                 ;;
             0)
                 echo -e "${GREEN}感谢使用 Sing-Box 管理脚本！${NC}"
