@@ -92,6 +92,9 @@ uninstall_singbox() {
         return
     fi
     
+    # 关闭所有节点端口
+    close_all_node_ports
+    
     docker stop jett-sing-box >/dev/null 2>&1 || true
     docker rm jett-sing-box >/dev/null 2>&1 || true
     

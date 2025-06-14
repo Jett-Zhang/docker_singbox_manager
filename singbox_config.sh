@@ -189,9 +189,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "Hysteria2 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (Hysteria2 使用 UDP)
+    open_firewall_port $port "udp"
+    
+    log_success "Hysteria2 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}hysteria2://$password@$domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
@@ -236,9 +239,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "VLESS 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (VLESS 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "VLESS 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}vless://$uuid@$domain:$port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#vless-$port${NC}"
@@ -283,9 +289,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "Trojan 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (Trojan 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "Trojan 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}trojan://$password@$domain:$port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#trojan-$port${NC}"
@@ -344,9 +353,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "Shadowsocks 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (Shadowsocks 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "Shadowsocks 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     local ss_url=$(echo -n "$method:$password" | base64 -w 0)
@@ -400,9 +412,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "VMess 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (VMess 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "VMess 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     local vmess_config=$(
@@ -474,9 +489,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "TUIC 节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (TUIC 使用 UDP)
+    open_firewall_port $port "udp"
+    
+    log_success "TUIC 节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}tuic://$uuid:$password@$domain:$port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#tuic-$port${NC}"
@@ -521,9 +539,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "HTTP 代理节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (HTTP 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "HTTP 代理节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}http://$username:$password@$domain:$port#http-$port${NC}"
@@ -568,9 +589,12 @@ EOF
     jq '.inbounds += [input]' "$CONFIG_FILE" /tmp/new_inbound.json >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"
 
-    restart_singbox
-
-        log_success "SOCKS5 代理节点添加成功"
+        restart_singbox
+    
+    # 开放防火墙端口 (SOCKS5 使用 TCP)
+    open_firewall_port $port "tcp"
+    
+    log_success "SOCKS5 代理节点添加成功"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     echo -e "${GREEN}socks5://$username:$password@$domain:$port#socks5-$port${NC}"
@@ -688,12 +712,24 @@ delete_node() {
 
     local array_index=$((node_index - 1))
     local node_tag=$(jq -r ".inbounds[$array_index].tag // \"节点$node_index\"" "$CONFIG_FILE")
+    local node_type=$(jq -r ".inbounds[$array_index].type" "$CONFIG_FILE")
+    local node_port=$(jq -r ".inbounds[$array_index].listen_port" "$CONFIG_FILE")
 
     read -p "确认删除节点 \"$node_tag\"？(y/n): " confirm
     if [[ "$confirm" != "y" ]]; then
         log_warning "取消删除操作"
         return
     fi
+
+    # 关闭防火墙端口
+    case $node_type in
+        "hysteria2"|"tuic")
+            close_firewall_port $node_port "udp"
+            ;;
+        *)
+            close_firewall_port $node_port "tcp"
+            ;;
+    esac
 
     jq "del(.inbounds[$array_index])" "$CONFIG_FILE" >/tmp/config_tmp.json
     mv /tmp/config_tmp.json "$CONFIG_FILE"

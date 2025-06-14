@@ -65,6 +65,14 @@ check_dependencies() {
         sudo apt update -qq
         sudo apt install -y jq
     fi
+    
+    if ! command -v ufw &> /dev/null; then
+        log_step "安装 ufw 防火墙..."
+        sudo apt install -y ufw
+        log_step "启用 ufw 防火墙..."
+        sudo ufw --force enable
+        log_success "ufw 防火墙已安装并启用"
+    fi
 }
 
 # 生成随机字符串
@@ -238,4 +246,71 @@ disable_bbr() {
         log_error "BBR 关闭失败"
         return 1
     fi
+}
+
+# 开放防火墙端口
+open_firewall_port() {
+    local port=$1
+    local protocol=$2
+    
+    if command -v ufw &> /dev/null; then
+        log_step "开放防火墙端口 $port/$protocol"
+        sudo ufw allow $port/$protocol > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            log_success "防火墙端口 $port/$protocol 已开放"
+        else
+            log_warning "防火墙端口 $port/$protocol 开放失败"
+        fi
+    fi
+}
+
+# 关闭防火墙端口
+close_firewall_port() {
+    local port=$1
+    local protocol=$2
+    
+    if command -v ufw &> /dev/null; then
+        log_step "关闭防火墙端口 $port/$protocol"
+        sudo ufw delete allow $port/$protocol > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            log_success "防火墙端口 $port/$protocol 已关闭"
+        else
+            log_warning "防火墙端口 $port/$protocol 关闭失败"
+        fi
+    fi
+}
+
+# 关闭所有节点端口
+close_all_node_ports() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        log_warning "配置文件不存在，跳过端口关闭"
+        return
+    fi
+    
+    local node_count=$(jq '.inbounds | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
+    if [ "$node_count" -eq 0 ]; then
+        log_warning "没有找到节点配置，跳过端口关闭"
+        return
+    fi
+    
+    log_step "关闭所有节点防火墙端口..."
+    
+    for i in $(seq 0 $((node_count - 1))); do
+        local node_type=$(jq -r ".inbounds[$i].type" "$CONFIG_FILE" 2>/dev/null)
+        local node_port=$(jq -r ".inbounds[$i].listen_port" "$CONFIG_FILE" 2>/dev/null)
+        local node_tag=$(jq -r ".inbounds[$i].tag // \"节点$((i + 1))\"" "$CONFIG_FILE" 2>/dev/null)
+        
+        if [ "$node_port" != "null" ] && [ "$node_port" != "" ]; then
+            case $node_type in
+                "hysteria2"|"tuic")
+                    close_firewall_port $node_port "udp"
+                    ;;
+                *)
+                    close_firewall_port $node_port "tcp"
+                    ;;
+            esac
+        fi
+    done
+    
+    log_success "所有节点防火墙端口已关闭"
 } 
