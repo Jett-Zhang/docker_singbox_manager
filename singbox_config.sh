@@ -192,8 +192,9 @@ EOF
     echo -e "${GREEN}密码: $password${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}hysteria2://$password@$domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
+    echo -e "${GREEN}hysteria2://$password@$formatted_domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -244,8 +245,9 @@ EOF
     echo -e "${GREEN}UUID: $uuid${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}vless://$uuid@$domain:$port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#vless-$port${NC}"
+    echo -e "${GREEN}vless://$uuid@$formatted_domain:$port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#vless-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -296,8 +298,9 @@ EOF
     echo -e "${GREEN}密码: $password${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}trojan://$password@$domain:$port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#trojan-$port${NC}"
+    echo -e "${GREEN}trojan://$password@$formatted_domain:$port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#trojan-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -362,9 +365,10 @@ EOF
     echo -e "${GREEN}加密: $method${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     local ss_url=$(echo -n "$method:$password" | base64 -w 0)
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}ss://$ss_url@$domain:$port#ss-$port${NC}"
+    echo -e "${GREEN}ss://$ss_url@$formatted_domain:$port#ss-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -514,8 +518,9 @@ EOF
     echo -e "${GREEN}拥塞控制: $congestion_control${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}tuic://$uuid:$password@$domain:$port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#tuic-$port${NC}"
+    echo -e "${GREEN}tuic://$uuid:$password@$formatted_domain:$port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#tuic-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -570,8 +575,9 @@ EOF
     echo -e "${GREEN}密码: $password${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}http://$username:$password@$domain:$port#http-$port${NC}"
+    echo -e "${GREEN}http://$username:$password@$formatted_domain:$port#http-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -626,8 +632,9 @@ EOF
     echo -e "${GREEN}密码: $password${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}socks5://$username:$password@$domain:$port#socks5-$port${NC}"
+    echo -e "${GREEN}socks5://$username:$password@$formatted_domain:$port#socks5-$port${NC}"
     
     read -p "按回车键继续..."
 }
@@ -657,6 +664,9 @@ show_nodes() {
     echo -e "${GREEN}● 服务器域名/IP: $domain${NC}"
     echo ""
     
+    # 格式化域名/IP地址（IPv6需要加方括号）
+    local formatted_domain=$(format_address "$domain")
+    
     for i in $(seq 0 $((node_count-1))); do
         local node_type=$(jq -r ".inbounds[$i].type" "$CONFIG_FILE")
         local node_tag=$(jq -r ".inbounds[$i].tag // \"节点$((i+1))\"" "$CONFIG_FILE")
@@ -670,17 +680,17 @@ show_nodes() {
             "hysteria2")
                 local password=$(jq -r ".inbounds[$i].users[0].password" "$CONFIG_FILE")
                 echo -e "  密码: $password"
-                echo -e "  客户端链接: ${GREEN}hysteria2://$password@$domain:$node_port/?sni=bing.com&alpn=h3&insecure=1#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}hysteria2://$password@$formatted_domain:$node_port/?sni=bing.com&alpn=h3&insecure=1#$node_tag${NC}"
                 ;;
             "vless")
                 local uuid=$(jq -r ".inbounds[$i].users[0].uuid" "$CONFIG_FILE")
                 echo -e "  UUID: $uuid"
-                echo -e "  客户端链接: ${GREEN}vless://$uuid@$domain:$node_port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}vless://$uuid@$formatted_domain:$node_port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#$node_tag${NC}"
                 ;;
             "trojan")
                 local password=$(jq -r ".inbounds[$i].users[0].password" "$CONFIG_FILE")
                 echo -e "  密码: $password"
-                echo -e "  客户端链接: ${GREEN}trojan://$password@$domain:$node_port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}trojan://$password@$formatted_domain:$node_port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#$node_tag${NC}"
                 ;;
             "shadowsocks")
                 local method=$(jq -r ".inbounds[$i].method" "$CONFIG_FILE")
@@ -688,7 +698,7 @@ show_nodes() {
                 echo -e "  加密: $method"
                 echo -e "  密码: $password"
                 local ss_url=$(echo -n "$method:$password" | base64 -w 0)
-                echo -e "  客户端链接: ${GREEN}ss://$ss_url@$domain:$node_port#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}ss://$ss_url@$formatted_domain:$node_port#$node_tag${NC}"
                 ;;
             "vmess")
                 local uuid=$(jq -r ".inbounds[$i].users[0].uuid" "$CONFIG_FILE")
@@ -708,21 +718,21 @@ show_nodes() {
                 echo -e "  UUID: $uuid"
                 echo -e "  密码: $password"
                 echo -e "  拥塞控制: $congestion_control"
-                echo -e "  客户端链接: ${GREEN}tuic://$uuid:$password@$domain:$node_port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}tuic://$uuid:$password@$formatted_domain:$node_port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#$node_tag${NC}"
                 ;;
             "http")
                 local username=$(jq -r ".inbounds[$i].users[0].username" "$CONFIG_FILE")
                 local password=$(jq -r ".inbounds[$i].users[0].password" "$CONFIG_FILE")
                 echo -e "  用户名: $username"
                 echo -e "  密码: $password"
-                echo -e "  客户端链接: ${GREEN}http://$username:$password@$domain:$node_port#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}http://$username:$password@$formatted_domain:$node_port#$node_tag${NC}"
                 ;;
             "socks")
                 local username=$(jq -r ".inbounds[$i].users[0].username" "$CONFIG_FILE")
                 local password=$(jq -r ".inbounds[$i].users[0].password" "$CONFIG_FILE")
                 echo -e "  用户名: $username"
                 echo -e "  密码: $password"
-                echo -e "  客户端链接: ${GREEN}socks5://$username:$password@$domain:$node_port#$node_tag${NC}"
+                echo -e "  客户端链接: ${GREEN}socks5://$username:$password@$formatted_domain:$node_port#$node_tag${NC}"
                 ;;
         esac
         echo ""

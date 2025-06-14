@@ -307,8 +307,9 @@ EOF
     echo -e "${GREEN}密码: $password${NC}"
     
     local domain=$(cat "$DATA_DIR/data/domain.txt")
+    local formatted_domain=$(format_address "$domain")
     echo -e "\n${BLUE}客户端链接:${NC}"
-    echo -e "${GREEN}hysteria2://$password@$domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
+    echo -e "${GREEN}hysteria2://$password@$formatted_domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
 }
 
 # 节点管理菜单
@@ -382,6 +383,9 @@ show_nodes() {
     echo -e "${GREEN}● 服务器域名/IP: $domain${NC}"
     echo ""
     
+    # 格式化域名/IP地址（IPv6需要加方括号）
+    local formatted_domain=$(format_address "$domain")
+    
     for i in $(seq 0 $((node_count-1))); do
         local node_type=$(jq -r ".inbounds[$i].type" "$CONFIG_FILE")
         local node_tag=$(jq -r ".inbounds[$i].tag // \"节点$((i+1))\"" "$CONFIG_FILE")
@@ -394,7 +398,7 @@ show_nodes() {
         if [[ "$node_type" == "hysteria2" ]]; then
             local password=$(jq -r ".inbounds[$i].users[0].password" "$CONFIG_FILE")
             echo -e "  密码: $password"
-            echo -e "  客户端链接: ${GREEN}hysteria2://$password@$domain:$node_port/?sni=bing.com&alpn=h3&insecure=1#$node_tag${NC}"
+            echo -e "  客户端链接: ${GREEN}hysteria2://$password@$formatted_domain:$node_port/?sni=bing.com&alpn=h3&insecure=1#$node_tag${NC}"
         fi
         echo ""
     done

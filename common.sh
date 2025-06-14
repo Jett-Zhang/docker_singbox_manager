@@ -119,4 +119,21 @@ start_singbox() {
     else
         log_warning "Sing-Box 容器不存在或已运行"
     fi
+}
+
+# 格式化IPv6地址 - 如果是IPv6地址则添加方括号
+format_address() {
+    local address="$1"
+    
+    # 检查是否为IPv6地址（包含冒号且不是IPv4映射的IPv6）
+    if [[ "$address" == *":"* ]] && [[ "$address" != *"."* ]]; then
+        # 如果已经有方括号，直接返回
+        if [[ "$address" == "["*"]" ]]; then
+            echo "$address"
+        else
+            echo "[$address]"
+        fi
+    else
+        echo "$address"
+    fi
 } 
