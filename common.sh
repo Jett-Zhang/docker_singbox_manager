@@ -31,7 +31,31 @@ log_error() {
     echo -e "${RED}✖ $1${NC}" >&2
 }
 
-
+# 处理域名/IP输入，自动为IPv6地址添加方括号
+process_domain_input() {
+    local input="$1"
+    local default_ip="$2"
+    
+    # 如果输入为空，使用默认IP
+    if [[ -z "$input" ]]; then
+        echo "$default_ip"
+        return
+    fi
+    
+    # 检查是否为IPv6地址（包含冒号且不是IPv4:port格式）
+    if [[ "$input" =~ : ]] && [[ ! "$input" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$ ]]; then
+        # 如果已经有方括号，直接返回
+        if [[ "$input" =~ ^\[.*\]$ ]]; then
+            echo "$input"
+        else
+            # 为IPv6地址添加方括号
+            echo "[$input]"
+        fi
+    else
+        # IPv4地址或域名，直接返回
+        echo "$input"
+    fi
+}
 
 # 检查依赖
 check_dependencies() {
@@ -118,22 +142,5 @@ start_singbox() {
         log_success "Sing-Box 已启动"
     else
         log_warning "Sing-Box 容器不存在或已运行"
-    fi
-}
-
-# 格式化IPv6地址 - 如果是IPv6地址则添加方括号
-format_address() {
-    local address="$1"
-    
-    # 检查是否为IPv6地址（包含冒号且不是IPv4映射的IPv6）
-    if [[ "$address" == *":"* ]] && [[ "$address" != *"."* ]]; then
-        # 如果已经有方括号，直接返回
-        if [[ "$address" == "["*"]" ]]; then
-            echo "$address"
-        else
-            echo "[$address]"
-        fi
-    else
-        echo "$address"
     fi
 } 

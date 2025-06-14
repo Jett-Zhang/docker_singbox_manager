@@ -28,12 +28,10 @@ install_singbox_system() {
         rm -rf "$DATA_DIR"
     fi
     
-    IPV4=$(curl -4 -s https://api.ipify.org || echo "未知")
+    IPV4=$(curl -4 -s https://api.ipify.org || echo "162.211.228.142")
     
-    read -p "请输入节点域名/IP（默认使用IP: $IPV4）: " DOMAIN
-    if [[ -z "$DOMAIN" ]]; then
-        DOMAIN="$IPV4"
-    fi
+    read -p "请输入节点域名/IP（默认使用IP: $IPV4）: " DOMAIN_INPUT
+    DOMAIN=$(process_domain_input "$DOMAIN_INPUT" "$IPV4")
     
     # 创建默认配置
     create_default_config
