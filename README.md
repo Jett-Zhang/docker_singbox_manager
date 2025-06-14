@@ -11,7 +11,7 @@
 使用以下命令一键安装：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Jett-Zhang/docker_singbox_manager/main/quickstart.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/imjettzhang/docker_singbox_manager/main/quickstart.sh)
 ```
 
 ## 支持的协议类型
