@@ -15,7 +15,7 @@ files=(
 # 下载所有脚本
 for file in "${files[@]}"; do
   echo "正在下载 $file ..."
-  curl -fsSL -o "$file" "https://raw.githubusercontent.com/Jett-Zhang/singbox_manager/main/$file"
+  curl -fsSL -o "$file" "https://raw.githubusercontent.com/Jett-Zhang/docker_singbox_manager/main/$file"
 done
 
 # 给所有脚本加执行权限

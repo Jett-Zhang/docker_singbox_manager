@@ -7,7 +7,7 @@
 使用以下命令一键安装：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Jett-Zhang/singbox_manager/main/quickstart.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Jett-Zhang/docker_singbox_manager/main/quickstart.sh)
 ```
 
 ## 支持的节点类型
