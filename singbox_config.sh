@@ -154,13 +154,10 @@ add_hysteria2() {
         return
     fi
     
-    local password=$(generate_random "uuid")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
+    local password=$(generate_random "uuid")
     
     local new_inbound=$(cat << EOF
 {
@@ -208,13 +205,10 @@ add_vless() {
         return
     fi
     
-    local uuid=$(generate_random "uuid")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入UUID (默认随机生成): " input_uuid
-    uuid=${input_uuid:-$uuid}
+    local uuid=$(generate_random "uuid")
     
     local new_inbound=$(cat << EOF
 {
@@ -260,13 +254,10 @@ add_trojan() {
         return
     fi
     
-    local password=$(generate_random "password")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
+    local password=$(generate_random "password")
     
     local new_inbound=$(cat << EOF
 {
@@ -312,31 +303,11 @@ add_shadowsocks() {
         return
     fi
     
-    local password=$(generate_random "password")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
-    
-    echo "请选择加密方法:"
-    echo "1. 2022-blake3-aes-128-gcm (推荐)"
-    echo "2. 2022-blake3-aes-256-gcm"
-    echo "3. aes-256-gcm"
-    echo "4. chacha20-ietf-poly1305"
-    echo "5. xchacha20-ietf-poly1305"
-    read -p "请选择加密方法 [1-5]: " method_choice
-    
-    local method
-    case $method_choice in
-        1) method="2022-blake3-aes-128-gcm" ;;
-        2) method="2022-blake3-aes-256-gcm" ;;
-        3) method="aes-256-gcm" ;;
-        4) method="chacha20-ietf-poly1305" ;;
-        5) method="xchacha20-ietf-poly1305" ;;
-        *) method="2022-blake3-aes-128-gcm" ;;
-    esac
+    local password=$(generate_random "password")
+    local method="2022-blake3-aes-128-gcm"  # 使用推荐的加密方法
     
     local new_inbound=$(cat << EOF
 {
@@ -379,19 +350,12 @@ add_vmess() {
         return
     fi
     
-    local uuid=$(generate_random "uuid")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入UUID (默认随机生成): " input_uuid
-    uuid=${input_uuid:-$uuid}
-    
-    read -p "请输入WebSocket路径 (默认: /v6): " ws_path
-    ws_path=${ws_path:-/v6}
-    
-    read -p "请输入Host头 (默认:  fe2.update.microsoft.com): " ws_host
-    ws_host=${ws_host:- fe2.update.microsoft.com}
+    local uuid=$(generate_random "uuid")
+    local ws_path="/v6"
+    local ws_host="fe2.update.microsoft.com"
     
     local new_inbound=$(cat << EOF
 {
@@ -462,20 +426,12 @@ add_tuic() {
         return
     fi
     
-    local uuid=$(generate_random "uuid")
-    local password=$(generate_random "password")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入UUID (默认随机生成): " input_uuid
-    uuid=${input_uuid:-$uuid}
-    
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
-    
-    # 硬编码使用BBR拥塞控制算法
-    local congestion_control="bbr"
+    local uuid=$(generate_random "uuid")
+    local password=$(generate_random "password")
+    local congestion_control="bbr"  # 硬编码使用BBR拥塞控制算法
     
     local new_inbound=$(cat << EOF
 {
@@ -530,17 +486,11 @@ add_http() {
         return
     fi
     
-    local username=$(generate_random "base64")
-    local password=$(generate_random "password")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入用户名 (默认随机生成): " input_username
-    username=${input_username:-$username}
-    
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
+    local username=$(generate_random "base64")
+    local password=$(generate_random "password")
     
     local new_inbound=$(cat << EOF
 {
@@ -586,17 +536,11 @@ add_socks5() {
         return
     fi
     
-    local username=$(generate_random "base64")
-    local password=$(generate_random "password")
-    
-    read -p "请输入端口 (默认随机端口: $port): " input_port
+    read -p "请输入端口 (随机端口: $port): " input_port
     port=${input_port:-$port}
     
-    read -p "请输入用户名 (默认随机生成): " input_username
-    username=${input_username:-$username}
-    
-    read -p "请输入密码 (默认随机生成): " input_password
-    password=${input_password:-$password}
+    local username=$(generate_random "base64")
+    local password=$(generate_random "password")
     
     local new_inbound=$(cat << EOF
 {
