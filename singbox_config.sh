@@ -191,12 +191,9 @@ EOF
 
     restart_singbox
 
-    log_success "Hysteria2 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-
+        log_success "Hysteria2 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}hysteria2://$password@$domain:$port/?sni=bing.com&alpn=h3&insecure=1#hy2-$port${NC}"
 
     read -p "按回车键继续..."
@@ -241,12 +238,9 @@ EOF
 
     restart_singbox
 
-    log_success "VLESS 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}UUID: $uuid${NC}"
-
+        log_success "VLESS 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}vless://$uuid@$domain:$port?encryption=none&security=tls&sni=bing.com&fp=chrome&type=tcp&flow=xtls-rprx-vision&allowInsecure=1#vless-$port${NC}"
 
     read -p "按回车键继续..."
@@ -291,12 +285,9 @@ EOF
 
     restart_singbox
 
-    log_success "Trojan 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-
+        log_success "Trojan 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}trojan://$password@$domain:$port?security=tls&sni=bing.com&type=tcp&allowInsecure=1#trojan-$port${NC}"
 
     read -p "按回车键继续..."
@@ -355,14 +346,10 @@ EOF
 
     restart_singbox
 
-    log_success "Shadowsocks 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-    echo -e "${GREEN}加密: $method${NC}"
-
+        log_success "Shadowsocks 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     local ss_url=$(echo -n "$method:$password" | base64 -w 0)
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}ss://$ss_url@$domain:$port#ss-$port${NC}"
 
     read -p "按回车键继续..."
@@ -415,12 +402,8 @@ EOF
 
     restart_singbox
 
-    log_success "VMess 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}UUID: $uuid${NC}"
-    echo -e "${GREEN}路径: $ws_path${NC}"
-    echo -e "${GREEN}Host: $ws_host${NC}"
-
+        log_success "VMess 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
     local vmess_config=$(
         cat <<EOF
@@ -440,7 +423,6 @@ EOF
 EOF
     )
     local encoded_config=$(echo "$vmess_config" | base64 -w 0)
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}vmess://$encoded_config${NC}"
 
     read -p "按回车键继续..."
@@ -494,14 +476,9 @@ EOF
 
     restart_singbox
 
-    log_success "TUIC 节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}UUID: $uuid${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-    echo -e "${GREEN}拥塞控制: $congestion_control${NC}"
-
+        log_success "TUIC 节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}tuic://$uuid:$password@$domain:$port?sni=bing.com&alpn=h3&congestion_control=$congestion_control&insecure=1#tuic-$port${NC}"
 
     read -p "按回车键继续..."
@@ -546,13 +523,9 @@ EOF
 
     restart_singbox
 
-    log_success "HTTP 代理节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}用户名: $username${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-
+        log_success "HTTP 代理节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}http://$username:$password@$domain:$port#http-$port${NC}"
 
     read -p "按回车键继续..."
@@ -597,13 +570,9 @@ EOF
 
     restart_singbox
 
-    log_success "SOCKS5 代理节点添加成功"
-    echo -e "${GREEN}端口: $port${NC}"
-    echo -e "${GREEN}用户名: $username${NC}"
-    echo -e "${GREEN}密码: $password${NC}"
-
+        log_success "SOCKS5 代理节点添加成功"
+    
     local domain=$(cat "$DATA_DIR/data/domain.txt")
-    echo -e "\n${BLUE}客户端链接:${NC}"
     echo -e "${GREEN}socks5://$username:$password@$domain:$port#socks5-$port${NC}"
 
     read -p "按回车键继续..."
