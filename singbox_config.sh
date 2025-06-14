@@ -307,7 +307,25 @@ add_shadowsocks() {
     port=${input_port:-$port}
     
     local password=$(generate_random "password")
-    local method="2022-blake3-aes-128-gcm"  # 使用推荐的加密方法
+    
+    echo "请选择加密方法:"
+    echo "1. aes-128-gcm"
+    echo "2. 2022-blake3-aes-128-gcm (推荐)"
+    echo "3. aes-256-gcm"
+    echo "4. 2022-blake3-aes-256-gcm"
+    echo "5. chacha20-ietf-poly1305"
+    echo "6. xchacha20-ietf-poly1305"
+    read -p "请选择 [1-6]: " method_choice
+    
+    case $method_choice in
+        1) local method="aes-128-gcm" ;;
+        2) local method="2022-blake3-aes-128-gcm" ;;
+        3) local method="aes-256-gcm" ;;
+        4) local method="2022-blake3-aes-256-gcm" ;;
+        5) local method="chacha20-ietf-poly1305" ;;
+        6) local method="xchacha20-ietf-poly1305" ;;
+        *) local method="2022-blake3-aes-128-gcm" ;;  # 默认使用推荐的加密方法
+    esac
     
     local new_inbound=$(cat << EOF
 {
