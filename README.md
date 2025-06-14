@@ -36,7 +36,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/imjettzhang/docker_singbox_m
 
 ## 系统要求
 
-- Linux 系统（推荐 Ubuntu/Debian/CentOS）
+- Linux 系统（推荐 Ubuntu/Debian）
 - Docker 和 Docker Compose
 
 ## 注意事项
