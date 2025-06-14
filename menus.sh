@@ -31,10 +31,11 @@ node_management_menu() {
         echo "1. 添加节点"
         echo "2. 删除节点"
         echo "3. 显示所有节点"
+        echo "4. 查看配置文件"
         echo "0. 返回主菜单"
         echo ""
         
-        read -p "请输入选择 [0-3]: " node_choice
+        read -p "请输入选择 [0-4]: " node_choice
         
         case $node_choice in
             1) 
@@ -47,6 +48,9 @@ node_management_menu() {
             3) 
                 show_nodes
                 read -p "按回车键继续..."
+                ;;
+            4) 
+                view_config
                 ;;
             0) 
                 break
