@@ -252,9 +252,9 @@ show_menu() {
         echo -e "${GREEN}● 配置节点数: $node_count${NC}"
     fi
     
+    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3 || echo "未知")
     local ipv4=$(curl -4 -s --connect-timeout 3 https://api.ipify.org 2>/dev/null || echo "获取失败")
     local ipv6=$(curl -6 -s --connect-timeout 3 https://api6.ipify.org 2>/dev/null || echo "获取失败")
-    local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3 || echo "未知")
     echo -e "${GREEN}● 本机 IPv4: $ipv4${NC}"
     echo -e "${GREEN}● 本机 IPv6: $ipv6${NC}"
     echo -e "${GREEN}● 当前拥塞控制算法: $current_congestion${NC}"
@@ -282,12 +282,10 @@ bbr_management_menu() {
         # 获取BBR状态信息
         local bbr_info=$(check_bbr_status)
         local current_congestion=$(echo "$bbr_info" | grep "current:" | cut -d: -f2)
-        local available_congestion=$(echo "$bbr_info" | grep "available:" | cut -d: -f2-)
         local kernel_version=$(uname -r)
         
         echo -e "${GREEN}● 内核版本: $kernel_version${NC}"
         echo -e "${GREEN}● 当前拥塞控制算法: $current_congestion${NC}"
-        echo -e "${GREEN}● 可用拥塞控制算法: $available_congestion${NC}"
         
         if [ "$current_congestion" = "bbr" ]; then
             echo -e "${GREEN}● BBR 状态: 已启用${NC}"
