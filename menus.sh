@@ -252,11 +252,24 @@ show_menu() {
     fi
     
     local current_congestion=$(sysctl net.ipv4.tcp_congestion_control 2>/dev/null | cut -d' ' -f3 || echo "未知")
+    local firewall_type=$(get_firewall_type)
     local ipv4=$(curl -4 -s --connect-timeout 3 https://api.ipify.org 2>/dev/null || echo "获取失败")
     local ipv6=$(curl -6 -s --connect-timeout 3 https://api6.ipify.org 2>/dev/null || echo "获取失败")
     echo -e "${GREEN}● 本机 IPv4: $ipv4${NC}"
     echo -e "${GREEN}● 本机 IPv6: $ipv6${NC}"
     echo -e "${GREEN}● 当前拥塞控制算法: $current_congestion${NC}"
+    
+    case $firewall_type in
+        "ufw")
+            echo -e "${GREEN}● 防火墙状态: ufw 已安装${NC}"
+            ;;
+        "iptables")
+            echo -e "${GREEN}● 防火墙状态: iptables 已安装${NC}"
+            ;;
+        "none")
+            echo -e "${YELLOW}● 防火墙状态: 未安装 (端口开放)${NC}"
+            ;;
+    esac
     
     echo ""
     echo -e "${BLUE}请选择操作:${NC}"

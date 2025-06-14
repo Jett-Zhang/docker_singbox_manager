@@ -66,13 +66,34 @@ check_dependencies() {
         sudo apt install -y jq
     fi
     
-    if ! command -v ufw &> /dev/null; then
-        log_step "安装 ufw 防火墙..."
-        sudo apt install -y ufw
-        log_step "启用 ufw 防火墙..."
-        sudo ufw --force enable
-        log_success "ufw 防火墙已安装并启用"
+    # 检查防火墙状态
+    check_firewall_status
+}
+
+# 检查防火墙状态
+check_firewall_status() {
+    # 检查是否安装了ufw
+    if command -v ufw &> /dev/null; then
+        export FIREWALL_TYPE="ufw"
+        log_success "检测到 ufw 防火墙"
+        return
     fi
+    
+    # 检查是否安装了iptables
+    if command -v iptables &> /dev/null; then
+        export FIREWALL_TYPE="iptables"
+        log_success "检测到 iptables 防火墙"
+        return
+    fi
+    
+    # 都没有安装
+    export FIREWALL_TYPE="none"
+    log_warning "未检测到防火墙，端口将保持开放状态"
+}
+
+# 获取防火墙类型
+get_firewall_type() {
+    echo "${FIREWALL_TYPE:-none}"
 }
 
 # 生成随机字符串
@@ -252,36 +273,89 @@ disable_bbr() {
 open_firewall_port() {
     local port=$1
     local protocol=$2
+    local firewall_type=$(get_firewall_type)
     
-    if command -v ufw &> /dev/null; then
-        log_step "开放防火墙端口 $port/$protocol"
-        sudo ufw allow $port/$protocol > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            log_success "防火墙端口 $port/$protocol 已开放"
-        else
-            log_warning "防火墙端口 $port/$protocol 开放失败"
-        fi
-    fi
+    case $firewall_type in
+        "ufw")
+            log_step "开放防火墙端口 $port/$protocol (ufw)"
+            sudo ufw allow $port/$protocol > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已开放"
+            else
+                log_warning "防火墙端口 $port/$protocol 开放失败"
+            fi
+            ;;
+        "iptables")
+            log_step "开放防火墙端口 $port/$protocol (iptables)"
+            if [ "$protocol" = "tcp" ]; then
+                sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
+            else
+                sudo iptables -I INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
+            fi
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已开放"
+                # 保存iptables规则
+                if command -v iptables-save &> /dev/null; then
+                    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+                fi
+            else
+                log_warning "防火墙端口 $port/$protocol 开放失败"
+            fi
+            ;;
+        "none")
+            log_step "无防火墙，端口 $port/$protocol 默认开放"
+            ;;
+    esac
 }
 
 # 关闭防火墙端口
 close_firewall_port() {
     local port=$1
     local protocol=$2
+    local firewall_type=$(get_firewall_type)
     
-    if command -v ufw &> /dev/null; then
-        log_step "关闭防火墙端口 $port/$protocol"
-        sudo ufw delete allow $port/$protocol > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            log_success "防火墙端口 $port/$protocol 已关闭"
-        else
-            log_warning "防火墙端口 $port/$protocol 关闭失败"
-        fi
-    fi
+    case $firewall_type in
+        "ufw")
+            log_step "关闭防火墙端口 $port/$protocol (ufw)"
+            sudo ufw delete allow $port/$protocol > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已关闭"
+            else
+                log_warning "防火墙端口 $port/$protocol 关闭失败"
+            fi
+            ;;
+        "iptables")
+            log_step "关闭防火墙端口 $port/$protocol (iptables)"
+            if [ "$protocol" = "tcp" ]; then
+                sudo iptables -D INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
+            else
+                sudo iptables -D INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
+            fi
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已关闭"
+                # 保存iptables规则
+                if command -v iptables-save &> /dev/null; then
+                    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+                fi
+            else
+                log_warning "防火墙端口 $port/$protocol 关闭失败"
+            fi
+            ;;
+        "none")
+            log_step "无防火墙，跳过端口 $port/$protocol 关闭"
+            ;;
+    esac
 }
 
 # 关闭所有节点端口
 close_all_node_ports() {
+    local firewall_type=$(get_firewall_type)
+    
+    if [ "$firewall_type" = "none" ]; then
+        log_step "无防火墙，跳过端口关闭操作"
+        return
+    fi
+    
     if [ ! -f "$CONFIG_FILE" ]; then
         log_warning "配置文件不存在，跳过端口关闭"
         return
