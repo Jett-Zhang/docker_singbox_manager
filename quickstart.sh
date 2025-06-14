@@ -26,3 +26,6 @@ chmod +x docker_singbox_manager/sh/*.sh
 
 # 运行主程序
 ./docker_singbox_manager/sh/main.sh
+
+# （可选）运行结束后删除所有下载脚本
+rm -rf docker_singbox_manager
