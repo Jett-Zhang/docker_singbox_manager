@@ -83,16 +83,6 @@ check_firewall_status() {
     if command -v iptables &> /dev/null; then
         export FIREWALL_TYPE="iptables"
         log_success "检测到 iptables 防火墙"
-        
-        # 安装 iptables-persistent 以便保存规则
-        if ! command -v iptables-save &> /dev/null || ! dpkg -l | grep -q iptables-persistent; then
-            log_step "安装 iptables-persistent..."
-            sudo apt update -qq
-            echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
-            echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
-            sudo apt install -y iptables-persistent
-            log_success "iptables-persistent 已安装"
-        fi
         return
     fi
     
@@ -104,23 +94,6 @@ check_firewall_status() {
 # 获取防火墙类型
 get_firewall_type() {
     echo "${FIREWALL_TYPE:-none}"
-}
-
-# 保存iptables规则
-save_iptables_rules() {
-    if ! command -v iptables-save &> /dev/null; then
-        return
-    fi
-    
-    # 使用 netfilter-persistent 保存（推荐方式）
-    if command -v netfilter-persistent &> /dev/null; then
-        sudo netfilter-persistent save 2>/dev/null || true
-        return
-    fi
-    
-    # 备用方式：直接保存到文件
-    sudo mkdir -p /etc/iptables 2>/dev/null || true
-    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
 }
 
 # 生成随机字符串
@@ -321,7 +294,10 @@ open_firewall_port() {
             fi
             if [ $? -eq 0 ]; then
                 log_success "防火墙端口 $port/$protocol 已开放"
-                save_iptables_rules
+                # 保存iptables规则
+                if command -v iptables-save &> /dev/null; then
+                    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+                fi
             else
                 log_warning "防火墙端口 $port/$protocol 开放失败"
             fi
@@ -357,7 +333,10 @@ close_firewall_port() {
             fi
             if [ $? -eq 0 ]; then
                 log_success "防火墙端口 $port/$protocol 已关闭"
-                save_iptables_rules
+                # 保存iptables规则
+                if command -v iptables-save &> /dev/null; then
+                    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+                fi
             else
                 log_warning "防火墙端口 $port/$protocol 关闭失败"
             fi
