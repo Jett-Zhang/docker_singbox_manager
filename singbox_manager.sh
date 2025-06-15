@@ -161,9 +161,10 @@ install_singbox_system() {
             return
         fi
         
-        # 关闭所有节点端口
+        # 先根据旧配置关闭防火墙端口
         close_all_node_ports
         
+        # 然后停止和删除容器及配置
         docker stop jett-sing-box >/dev/null 2>&1 || true
         docker rm jett-sing-box >/dev/null 2>&1 || true
         rm -rf "$DATA_DIR"
@@ -618,6 +619,119 @@ system_status_check() {
     else
         echo "Sing-Box容器: 未运行"
     fi
+}
+
+# 获取防火墙类型
+get_firewall_type() {
+    # 检查是否安装了ufw
+    if command -v ufw &> /dev/null; then
+        echo "ufw"
+        return
+    fi
+    
+    # 检查是否安装了iptables
+    if command -v iptables &> /dev/null; then
+        echo "iptables"
+        return
+    fi
+    
+    # 都没有安装
+    echo "none"
+}
+
+# 保存iptables规则
+save_iptables_rules() {
+    if ! command -v iptables-save &> /dev/null; then
+        return
+    fi
+    
+    # 使用 netfilter-persistent 保存（推荐方式）
+    if command -v netfilter-persistent &> /dev/null; then
+        sudo netfilter-persistent save 2>/dev/null || true
+        return
+    fi
+    
+    # 备用方式：直接保存到文件
+    sudo mkdir -p /etc/iptables 2>/dev/null || true
+    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+}
+
+# 关闭防火墙端口
+close_firewall_port() {
+    local port=$1
+    local protocol=$2
+    local firewall_type=$(get_firewall_type)
+    
+    case $firewall_type in
+        "ufw")
+            log_step "关闭防火墙端口 $port/$protocol (ufw)"
+            sudo ufw delete allow $port/$protocol > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已关闭"
+            else
+                log_warning "防火墙端口 $port/$protocol 关闭失败"
+            fi
+            ;;
+        "iptables")
+            log_step "关闭防火墙端口 $port/$protocol (iptables)"
+            if [ "$protocol" = "tcp" ]; then
+                sudo iptables -D INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
+            else
+                sudo iptables -D INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
+            fi
+            if [ $? -eq 0 ]; then
+                log_success "防火墙端口 $port/$protocol 已关闭"
+                save_iptables_rules
+            else
+                log_warning "防火墙端口 $port/$protocol 关闭失败"
+            fi
+            ;;
+        "none")
+            log_step "无防火墙，跳过端口 $port/$protocol 关闭"
+            ;;
+    esac
+}
+
+# 关闭所有节点端口
+close_all_node_ports() {
+    local firewall_type=$(get_firewall_type)
+    
+    if [ "$firewall_type" = "none" ]; then
+        log_step "无防火墙，跳过端口关闭操作"
+        return
+    fi
+    
+    if [ ! -f "$CONFIG_FILE" ]; then
+        log_warning "配置文件不存在，跳过端口关闭"
+        return
+    fi
+    
+    local node_count=$(jq '.inbounds | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
+    if [ "$node_count" -eq 0 ]; then
+        log_warning "没有找到节点配置，跳过端口关闭"
+        return
+    fi
+    
+    log_step "关闭所有节点防火墙端口..."
+    
+    for i in $(seq 0 $((node_count - 1))); do
+        local node_type=$(jq -r ".inbounds[$i].type" "$CONFIG_FILE" 2>/dev/null)
+        local node_port=$(jq -r ".inbounds[$i].listen_port" "$CONFIG_FILE" 2>/dev/null)
+        local node_tag=$(jq -r ".inbounds[$i].tag // \"节点$((i + 1))\"" "$CONFIG_FILE" 2>/dev/null)
+        
+        if [ "$node_port" != "null" ] && [ "$node_port" != "" ]; then
+            case $node_type in
+                "hysteria2"|"tuic")
+                    close_firewall_port $node_port "udp"
+                    ;;
+                *)
+                    close_firewall_port $node_port "tcp"
+                    ;;
+            esac
+        fi
+    done
+    
+    log_success "所有节点防火墙端口已关闭"
 }
 
 # 卸载Sing-Box

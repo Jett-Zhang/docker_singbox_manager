@@ -23,7 +23,10 @@ install_singbox_system() {
             return
         fi
         
-        # 先停止和删除容器
+        # 先根据旧配置关闭防火墙端口
+        close_all_node_ports
+        
+        # 然后停止和删除容器及配置
         docker stop jett-sing-box >/dev/null 2>&1 || true
         docker rm jett-sing-box >/dev/null 2>&1 || true
         rm -rf "$DATA_DIR"
@@ -62,9 +65,6 @@ EOF
         log_success "Sing-Box 系统安装成功"
         echo -e "${GREEN}域名/IP: $DOMAIN${NC}"
         echo -e "${GREEN}配置文件: $CONFIG_FILE${NC}"
-        
-        # 安装完成后关闭旧的节点端口
-        close_all_node_ports
     else
         log_error "Sing-Box 启动失败"
         docker logs jett-sing-box
