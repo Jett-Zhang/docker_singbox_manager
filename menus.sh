@@ -263,11 +263,8 @@ show_menu() {
         "ufw")
             echo -e "${GREEN}● 防火墙状态: ufw 已安装${NC}"
             ;;
-        "iptables")
-            echo -e "${GREEN}● 防火墙状态: iptables 已安装${NC}"
-            ;;
         "none")
-            echo -e "${YELLOW}● 防火墙状态: 未安装 (端口开放)${NC}"
+            echo -e "${YELLOW}● 防火墙状态: 未安装 ufw (端口默认开放)${NC}"
             ;;
     esac
     

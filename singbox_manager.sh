@@ -637,37 +637,14 @@ system_status_check() {
 
 # 获取防火墙类型
 get_firewall_type() {
-    # 检查是否安装了ufw
+    # 只检查是否安装了ufw
     if command -v ufw &> /dev/null; then
         echo "ufw"
         return
     fi
     
-    # 检查是否安装了iptables
-    if command -v iptables &> /dev/null; then
-        echo "iptables"
-        return
-    fi
-    
-    # 都没有安装
+    # 没有ufw，设置为none（iptables默认全放行，无需管理）
     echo "none"
-}
-
-# 保存iptables规则
-save_iptables_rules() {
-    if ! command -v iptables-save &> /dev/null; then
-        return
-    fi
-    
-    # 使用 netfilter-persistent 保存（推荐方式）
-    if command -v netfilter-persistent &> /dev/null; then
-        sudo netfilter-persistent save 2>/dev/null || true
-        return
-    fi
-    
-    # 备用方式：直接保存到文件
-    sudo mkdir -p /etc/iptables 2>/dev/null || true
-    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
 }
 
 # 关闭防火墙端口
@@ -686,22 +663,8 @@ close_firewall_port() {
                 log_warning "防火墙端口 $port/$protocol 关闭失败"
             fi
             ;;
-        "iptables")
-            log_step "关闭防火墙端口 $port/$protocol (iptables)"
-            if [ "$protocol" = "tcp" ]; then
-                sudo iptables -D INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
-            else
-                sudo iptables -D INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
-            fi
-            if [ $? -eq 0 ]; then
-                log_success "防火墙端口 $port/$protocol 已关闭"
-                save_iptables_rules
-            else
-                log_warning "防火墙端口 $port/$protocol 关闭失败"
-            fi
-            ;;
         "none")
-            log_step "无防火墙，跳过端口 $port/$protocol 关闭"
+            log_step "无 ufw 防火墙，跳过端口 $port/$protocol 关闭"
             ;;
     esac
 }
@@ -711,7 +674,7 @@ close_all_node_ports() {
     local firewall_type=$(get_firewall_type)
     
     if [ "$firewall_type" = "none" ]; then
-        log_step "无防火墙，跳过端口关闭操作"
+        log_step "无 ufw 防火墙，跳过端口关闭操作"
         return
     fi
     

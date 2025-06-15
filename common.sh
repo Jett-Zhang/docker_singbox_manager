@@ -72,55 +72,21 @@ check_dependencies() {
 
 # 检查防火墙状态
 check_firewall_status() {
-    # 检查是否安装了ufw
+    # 只检查是否安装了ufw
     if command -v ufw &> /dev/null; then
         export FIREWALL_TYPE="ufw"
         log_success "检测到 ufw 防火墙"
         return
     fi
     
-    # 检查是否安装了iptables
-    if command -v iptables &> /dev/null; then
-        export FIREWALL_TYPE="iptables"
-        log_success "检测到 iptables 防火墙"
-        
-        # 安装 iptables-persistent 以便保存规则
-        if ! command -v iptables-save &> /dev/null || ! dpkg -l | grep -q iptables-persistent; then
-            log_step "安装 iptables-persistent..."
-            sudo apt update -qq
-            echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
-            echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
-            sudo apt install -y iptables-persistent
-            log_success "iptables-persistent 已安装"
-        fi
-        return
-    fi
-    
-    # 都没有安装
+    # 没有ufw，设置为none（iptables默认全放行，无需管理）
     export FIREWALL_TYPE="none"
-    log_warning "未检测到防火墙，端口将保持开放状态"
+    log_success "未检测到 ufw 防火墙，端口默认开放"
 }
 
 # 获取防火墙类型
 get_firewall_type() {
     echo "${FIREWALL_TYPE:-none}"
-}
-
-# 保存iptables规则
-save_iptables_rules() {
-    if ! command -v iptables-save &> /dev/null; then
-        return
-    fi
-    
-    # 使用 netfilter-persistent 保存（推荐方式）
-    if command -v netfilter-persistent &> /dev/null; then
-        sudo netfilter-persistent save 2>/dev/null || true
-        return
-    fi
-    
-    # 备用方式：直接保存到文件
-    sudo mkdir -p /etc/iptables 2>/dev/null || true
-    sudo iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
 }
 
 # 生成随机字符串
@@ -312,22 +278,8 @@ open_firewall_port() {
                 log_warning "防火墙端口 $port/$protocol 开放失败"
             fi
             ;;
-        "iptables")
-            log_step "开放防火墙端口 $port/$protocol (iptables)"
-            if [ "$protocol" = "tcp" ]; then
-                sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
-            else
-                sudo iptables -I INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
-            fi
-            if [ $? -eq 0 ]; then
-                log_success "防火墙端口 $port/$protocol 已开放"
-                save_iptables_rules
-            else
-                log_warning "防火墙端口 $port/$protocol 开放失败"
-            fi
-            ;;
         "none")
-            log_step "无防火墙，端口 $port/$protocol 默认开放"
+            log_step "无 ufw 防火墙，端口 $port/$protocol 默认开放"
             ;;
     esac
 }
@@ -348,22 +300,8 @@ close_firewall_port() {
                 log_warning "防火墙端口 $port/$protocol 关闭失败"
             fi
             ;;
-        "iptables")
-            log_step "关闭防火墙端口 $port/$protocol (iptables)"
-            if [ "$protocol" = "tcp" ]; then
-                sudo iptables -D INPUT -p tcp --dport $port -j ACCEPT > /dev/null 2>&1
-            else
-                sudo iptables -D INPUT -p udp --dport $port -j ACCEPT > /dev/null 2>&1
-            fi
-            if [ $? -eq 0 ]; then
-                log_success "防火墙端口 $port/$protocol 已关闭"
-                save_iptables_rules
-            else
-                log_warning "防火墙端口 $port/$protocol 关闭失败"
-            fi
-            ;;
         "none")
-            log_step "无防火墙，跳过端口 $port/$protocol 关闭"
+            log_step "无 ufw 防火墙，跳过端口 $port/$protocol 关闭"
             ;;
     esac
 }
@@ -373,7 +311,7 @@ close_all_node_ports() {
     local firewall_type=$(get_firewall_type)
     
     if [ "$firewall_type" = "none" ]; then
-        log_step "无防火墙，跳过端口关闭操作"
+        log_step "无 ufw 防火墙，跳过端口关闭操作"
         return
     fi
     
