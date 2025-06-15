@@ -161,10 +161,24 @@ install_singbox_system() {
             return
         fi
         
-        # 先根据旧配置关闭防火墙端口
-        close_all_node_ports
+        # 询问是否关闭旧节点防火墙端口
+        echo -e "${YELLOW}重新安装将会关闭所有旧节点的防火墙端口${NC}"
+        read -p "是否关闭旧节点的防火墙端口？(y/n): " close_ports
+        if [[ "$close_ports" == "y" ]]; then
+            # 根据旧配置关闭防火墙端口
+            close_all_node_ports
+        else
+            log_warning "跳过关闭旧节点防火墙端口"
+        fi
         
-        # 然后停止和删除容器及配置
+        # 询问是否继续安装
+        read -p "是否继续安装 Sing-Box 服务？(y/n): " continue_install
+        if [[ "$continue_install" != "y" ]]; then
+            log_warning "取消安装"
+            return
+        fi
+        
+        # 停止和删除容器及配置
         docker stop jett-sing-box >/dev/null 2>&1 || true
         docker rm jett-sing-box >/dev/null 2>&1 || true
         rm -rf "$DATA_DIR"
